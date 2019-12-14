@@ -1,7 +1,7 @@
 
-// Practica 2 se SO
+// Practica 3 se SO
 //Parte 1, shell.c
-// Data: 21 de Novembro do 2019
+// Data: 12 de decembro do 2019
 
 // Grupo 1.3
 // Brais Garc�a Brenlla ; b.brenlla ; 46097652V
@@ -30,7 +30,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
-//#include "arraylist.h"
+#include "arraylist.h"
 
 #define LEERCOMPLETO ((ssize_t)-1)
 
@@ -76,7 +76,7 @@ void Cmd_AsignarMmap (char *arg[],tListM * m);
 ssize_t LeerFichero (char *fich, void *p, ssize_t n);
 int TrocearCadenaEnArray(char * cadena,char * trozos[]);
 void asignar (char arg[], int palabras,tListM * m);
-void escollerFuncion(char tec[],char com[],char arg[],int palabras,int * acabado,tList * h,tListM * m);
+void escollerFuncion(char tec[],char com[],char arg[],int palabras,int * acabado,tList * h,tListM * m , tListP * p);
 
 /*
 --------------------------------------------------------------------------------
@@ -1085,14 +1085,13 @@ void exec (char arg[]){
 */
 void pplano(char * arg[], int * fin){
   pid_t pid;
-  int state;
   if ((pid=fork())!=0){
-    waitpid(pid,&state,0);
+    waitpid(pid,NULL,0);
   }
   else{
-    if (arg[0][0]!='@'){ if(execvp(arg[0],arg)==-1) { perror("Error"); *fin=1;} }
+    if (arg[0][0]!='@'){ if(execvp(arg[0],arg)==-1) {  *fin=1; perror("Error");} }
     else {
-      if(setpriority(PRIO_PROCESS,getpid(),atoi(&arg[0][1]))!=0) perror ("Error");
+      if(setpriority(PRIO_PROCESS,getpid(),atoi(&arg[0][1]))!=0){ perror ("Error"); return;}
       if(execvp(arg[1],&arg[1])==-1){ perror("Error"); *fin=1;}
     }
   }
@@ -1101,35 +1100,61 @@ void pplano(char * arg[], int * fin){
 /*
 --------------------------------------------------------------------------------
 */
-void splano(char * arg[], int * fin){
+void splano(char * arg[],char arg2[], int * fin, tListP * p){
   pid_t pid;
   if ((pid=fork())==0){
-    if (arg[0][0]!='@'){ if(execvp(arg[0],arg)==-1) { perror("Error"); *fin = 1;} }
+    if (arg[0][0]!='@'){ if(execvp(arg[0],arg)==-1) {  *fin = 1; perror("Error");} }
     else {
-      if(setpriority(PRIO_PROCESS,getpid(),atoi(&arg[0][1]))!=0) perror ("Error");
+      if(setpriority(PRIO_PROCESS,getpid(),atoi(&arg[0][1]))!=0){ perror ("Error");}
       if(execvp(arg[1],&arg[1])==-1){ perror("Error"); *fin = 1;}
     }
   }
-  // else garadar en lista
-
+  else addNodoP(p,pid,arg2);
 }
 /*
 --------------------------------------------------------------------------------
 */
-void rest(char * aux[],int * fin){
+void rest(char * aux[],char arg2[],int * fin, tListP * p){
   int cmp =0;
   for (int i = 0; aux[i]!=NULL;i++) if(strcmp(aux[i],"&")==0) cmp=1;
   if (cmp == 0) {pplano(aux,fin); return;}
   char * aux2[MAX];
   for (int i = 0; aux[i]!=NULL;i++) if(strcmp(aux[i],"&")!=0) aux2[i]=aux[i];
-  splano(aux2,fin);
+  splano(aux2,arg2,fin,p);
 }
 /*
 --------------------------------------------------------------------------------
 */
-void escollerFuncion(char tec[], char com[],char arg[],int palabras,int * acabado,tList * h,tListM * m){
+void borrarprocs(char arg[],tListP * p){
+  if(strcmp(arg,"-term")==0) borrarNodoP(p,0);
+  else if(strcmp(arg,"-sig")==0) borrarNodoP(p,1);
+  else printf("Argumento non valido\n" );
+}
+/*
+--------------------------------------------------------------------------------
+*/
+void proc(char * arg[],int palabras, tListP * p){
+  if (palabras == 1) verListaP(p,0);
+  else if (palabras == 2)
+    if(strncmp(arg[0],"-fg\0",4)==0) printf("falta o pid\n");
+    else verListaP(p,atoi(arg[0]));
+  else if (palabras==3){
+    if(strncmp(arg[0],"-fg\0",4)==0){
+      if(verListaP(p,atoi(arg[0]))==0) verListaP(p,0);
+      else waitpid(atoi(arg[0]),NULL,0);
+    }
+    else printf("Argumentos non validos \n" );
+  }
+  else printf("Demasiados argumentos\n" );
+}
+/*
+--------------------------------------------------------------------------------
+*/
+void escollerFuncion(char tec[], char com[],char arg[],int palabras,int * acabado,tList * h,tListM * m , tListP * p){
   char * aux[MAX];
   char * aux2[MAX];
+  char  copytec[MAX];
+  strcpy(copytec,tec);
   TrocearCadenaEnArray(arg,aux);
   TrocearCadenaEnArray(tec,aux2);
   //Tendo en conta o comando recivido e o n�mero de palabras ch�mase a funci�n necesaria
@@ -1239,11 +1264,28 @@ void escollerFuncion(char tec[], char com[],char arg[],int palabras,int * acabad
                                                   }
                                                   else{
                                                     if(strncmp(com,"splano\0",7)==0){
-                                                      if(palabras>1) splano(aux,acabado);
+                                                      if(palabras>1) splano(aux,arg,acabado,p);
                                                       else printf("splano necesita argumentos\n" );
                                                     }
                                                     else{
-                                                      rest(aux2,acabado);
+                                                      if(strncmp(com,"borrarprocs\0",12)==0){
+                                                        if(palabras>1) borrarprocs(arg,p);
+                                                        else printf("borrarprocs necesita 1 unico argumento\n" );
+                                                      }
+                                                      else{
+                                                        if(strncmp(com,"proc\0",5)==0){
+                                                          proc(aux,palabras,p);
+                                                        }
+                                                        else{
+                                                          if(strncmp(com,"listarprocs\0",12)==0){
+                                                            if(palabras==1) verListaP(p,0);
+                                                            else printf("listarprocs non acepta argumentos\n" );
+                                                          }
+                                                          else{
+                                                            rest(aux2,copytec,acabado,p);
+                                                          }
+                                                        }
+                                                      }
                                                     }
                                                   }
                                                 }
@@ -1281,15 +1323,17 @@ int main() {
   char argumento[MAX];
 	tList historial;
   tListM memoria;
+  tListP procesos;
 	historial.inicio=NULL;
 	historial.final=NULL;
   memoria.inicio=NULL;
   memoria.final=NULL;
-
+  procesos.final=-1;
   //Mentras non se indica que se acabou leerase por teclado e traballarase coa cadena recivida
 	while (acabado != 1){
     printf("->");
     fgets(teclado,MAX,stdin);
+
 
     //G�rdase a cadea recivida na lista
 		gardar(teclado,&historial);
@@ -1299,7 +1343,7 @@ int main() {
 		numPalabras=TrocearCadena(teclado , comando, argumento);
 
     //Esc�llese a funci�n a facer dependendo do comando
-		escollerFuncion(teclado,comando,argumento,numPalabras,&acabado,&historial,&memoria);
+		escollerFuncion(teclado,comando,argumento,numPalabras,&acabado,&historial,&memoria,&procesos);
 
     //L�mpianse as diversas cadeas que se utilizaron
 		limpiarBuffer(teclado);
