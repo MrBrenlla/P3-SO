@@ -1,3 +1,9 @@
+// Practica 3 se SO
+// Data: 12 de decembro do 2019
+
+// Grupo 1.3
+// Brais Garc�a Brenlla ; b.brenlla ; 46097652V
+// �ngel �lvarez Rey ; angel.alvarez.rey ; 21050084R
 #define MAXP 512
 #include <signal.h>
 #include <sys/types.h>

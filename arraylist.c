@@ -1,3 +1,9 @@
+// Practica 3 se SO
+// Data: 12 de decembro do 2019
+
+// Grupo 1.3
+// Brais Garc�a Brenlla ; b.brenlla ; 46097652V
+// �ngel �lvarez Rey ; angel.alvarez.rey ; 21050084R
 #include "arraylist.h"
 
 
@@ -144,7 +150,7 @@ void borrarNodoP(tListP *l, int mode){
   int i=0;
   while (i<=l->final){
     tNodoP n = l->datos[i];
-    if (strcmp(n.estado,"ACTIVO")==0) {estadoActual(&n); l->datos[i]=n;}
+    if (strcmp(n.estado,"ACTIVO" )==0 || strcmp(n.estado,"PARADO")==0) {estadoActual(&n); l->datos[i]=n;}
     if((strcmp(n.estado,"REMATADO NORMALMENTE")==0 && (mode == 0)) ||
               ((mode == 1) && strcmp(n.estado,"REMATADO POR SINAL")==0)) {
       printf("Borrouse da lista o pid %d\n",l->datos[i].pid);
@@ -177,7 +183,7 @@ int verListaP(tListP *l, int pid){
     tNodoP n = l->datos[i];
     if (pid == 0 || n.pid == pid) {
       found =1;
-        if (strcmp(n.estado,"ACTIVO")==0) {estadoActual(&n); l->datos[i]=n;}
+        if (strcmp(n.estado,"ACTIVO")==0 || strcmp(n.estado,"PARADO")==0) {estadoActual(&n); l->datos[i]=n;}
         printf("%d | p=%d | inicio: %s | estado: %s " ,
           n.pid, n.prio , n.time, n.estado);
           if(strcmp(n.signal,"")!=0) printf("(con señal: %s )",n.signal );
